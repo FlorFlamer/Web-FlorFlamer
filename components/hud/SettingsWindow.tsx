@@ -160,7 +160,7 @@ function SettingsRowBlocked({
         }}
       >
         <Image
-          src="/img/block.webp"
+          src="/img/settings/block.webp"
           alt=""
           width={45}
           height={45}

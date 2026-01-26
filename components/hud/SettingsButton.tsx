@@ -36,7 +36,7 @@ export default function SettingsButton() {
       className="grid h-10 w-10 place-items-center rounded-sm bg-neutral-200/70 opacity-75 text-xl font-black text-neutral-700 shadow hover:bg-neutral-200 active:translate-y-[1px]"
     >
       <Image
-        src="/img/hud/Settings.webp"
+        src="/img/hud/settings.webp"
         alt="Settings"
         width={22}
         height={22}
