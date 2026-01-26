@@ -329,6 +329,7 @@ export default function SettingsWindow() {
   const resetRafRef = useRef<number | null>(null);
   const resetStartRef = useRef(0);
   const resetDoneRef = useRef(false);
+  const resetPidRef = useRef<number | null>(null);
 
   const stopResetHold = (resetVisual = true) => {
     if (resetRafRef.current) {
@@ -340,8 +341,16 @@ export default function SettingsWindow() {
     if (resetVisual) setResetPct(0);
   };
 
+    const releaseResetCapture = (el?: HTMLButtonElement) => {
+    try {
+      const pid = resetPidRef.current;
+      if (el && pid != null) el.releasePointerCapture(pid);
+    } catch {}
+    resetPidRef.current = null;
+  };
+
   const performReset = () => {
-    // Apaga as keys do teu projeto
+    
     try {
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const k = localStorage.key(i);
@@ -380,15 +389,17 @@ export default function SettingsWindow() {
     });
   };
 
-  const startResetHold = (e: PointerEvent<HTMLButtonElement>) => {
+    const startResetHold = (e: PointerEvent<HTMLButtonElement>) => {
     if (typeof e.button === "number" && e.button !== 0) return;
+
+    const btn = e.currentTarget;
 
     e.preventDefault();
     e.stopPropagation();
 
-
     try {
-      e.currentTarget.setPointerCapture(e.pointerId);
+      btn.setPointerCapture(e.pointerId);
+      resetPidRef.current = e.pointerId;
     } catch {}
 
     playSfx("click", { volume: 1 });
@@ -410,6 +421,7 @@ export default function SettingsWindow() {
         resetRafRef.current = null;
 
         playSfx("zap", { volume: 1 });
+        releaseResetCapture(btn);
         performReset();
         return;
       }
@@ -424,10 +436,10 @@ export default function SettingsWindow() {
     e.preventDefault();
     e.stopPropagation();
 
+    releaseResetCapture(e.currentTarget);
 
     if (!resetDoneRef.current) stopResetHold(true);
   };
-
 
   const {
     settingsOpen,
