@@ -39,20 +39,3 @@ Thumbs.db
 # Testes / coverage
 
 coverage/
-
-# Informação Pessoal
-
-public/cv.pdf
-
-# Fonts (não é pruduto final) BNWolfStar and KCPixelhand
-
-public/fonts/
-
-# Musica (não é pruduto final) Your Local Forecast 1133 by Frizk - https://soundcloud.com/prodfrizk/your-local-forecast-1133
-
-public/audio/music/
-
-# Sounds Effects (não é prduto final) FNF One Shot Mania
-
-public/audio/sfx/select/
-public/audio/sfx/click/
