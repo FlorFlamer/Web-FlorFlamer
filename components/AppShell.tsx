@@ -19,6 +19,7 @@ import ChannelZapTransition from "@/components/effects/ChannelZapTransition";
 // State
 
 import { useHud } from "@/lib/hud-store";
+import HudRouteSync from "@/components/HudRouteSync";
 import { HUD_Z } from "@/lib/hud-layers";
 
 const styles = {
@@ -82,8 +83,8 @@ export default function AppShell({ children }: AppShellProps) {
 
   return (
     <div style={styles.root}>
+      <HudRouteSync />
       <MusicPlayer targetVolume={0.35} fadeMs={900} />
-
       <div style={styles.content}>{children}</div>
 
       {fxLayer}

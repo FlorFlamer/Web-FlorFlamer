@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ChannelKey } from "./channels";
 import { CHANNEL_ORDER } from "./channels";
 import { preloadSfx, playSfx, setSfxEnabled } from "@/lib/sfx";
@@ -14,6 +15,9 @@ const KEY_MUSIC = "m";
 type HudState = {
   currentChannel: ChannelKey;
   setCurrentChannel: (c: ChannelKey) => void;
+
+  pendingPath: string | null;
+  setPendingPath: (v: string | null) => void;
 
   setupDone: boolean;
   language: "pt" | "en";
@@ -86,10 +90,23 @@ function safeLSSet(key: string, value: string) {
 }
 
 export function HudProvider({ children }: { children: React.ReactNode }) {
+    const router = useRouter();
+
+  const channelToPath = (c: ChannelKey) => 
+    (c === "home" ? "/" : `/${c}`);
+
+  const pushChannelRoute = (c: ChannelKey) => {
+    const nextPath = channelToPath(c);
+    if (typeof window !== "undefined" && window.location.pathname !== nextPath) {
+      router.push(nextPath);
+    }
+  };
+
   const digitBufferRef = useRef("");
   const digitTimerRef = useRef<number | null>(null);
 
   const [currentChannel, setCurrentChannel] = useState<ChannelKey>("home");
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -172,6 +189,8 @@ export function HudProvider({ children }: { children: React.ReactNode }) {
   const selectChannel = (c: ChannelKey) => {
     triggerChannelZap();
     setCurrentChannel(c);
+    setPendingPath(channelToPath(c));
+    pushChannelRoute(c);
     setChannelPickMode(false);
   };
 
@@ -202,6 +221,8 @@ export function HudProvider({ children }: { children: React.ReactNode }) {
     triggerChannelZap();
     setCurrentChannel(next);
     setChannelPickSelected(next);
+    setPendingPath(channelToPath(next));
+    pushChannelRoute(next);
 
     currentChannelRef.current = next;
     channelPickSelectedRef.current = next;
@@ -382,6 +403,8 @@ export function HudProvider({ children }: { children: React.ReactNode }) {
         const next = CHANNEL_ORDER[n - 1];
         triggerChannelZap();
         setCurrentChannel(next);
+        setPendingPath(channelToPath(next));
+        pushChannelRoute(next);
         setChannelPickSelected(next);
       }
     };
@@ -503,6 +526,8 @@ export function HudProvider({ children }: { children: React.ReactNode }) {
       currentChannel,
       setCurrentChannel,
       selectChannel,
+      pendingPath,
+      setPendingPath,
 
       setupDone,
       language,

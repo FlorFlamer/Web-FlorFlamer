@@ -1,4 +1,5 @@
 import "./globals.css";
+import AppShell from "@/components/AppShell";
 import { HudProvider } from "@/lib/hud-store";
 import NoZoom from "@/components/NoZoom";
 
@@ -13,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <NoZoom />
         <HudProvider>
-          {children}
+          <AppShell>{children}</AppShell>
         </HudProvider>
       </body>
     </html>
