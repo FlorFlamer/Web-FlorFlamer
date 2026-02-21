@@ -6,15 +6,15 @@ import { useMemo } from "react";
 // UI layers
 
 import Hud from "@/components/hud/Hud";
-import SettingsWindow from "@/components/hud/SettingsWindow";
-import HelpDrawer from "@/components/hud/HelpDrawer";
+import SettingsWindow from "@/components/hud/settingswindow";
+import HelpDrawer from "@/components/hud/helpdrawer";
 
 // FX / audio
 
-import MusicPlayer from "@/components/effects/MusicPlayer";
-import ScreenFX from "@/components/effects/ScreenFX";
-import GlitchPulse from "@/components/effects/GlitchPulse";
-import ChannelZapTransition from "@/components/effects/ChannelZapTransition";
+import MusicPlayer from "@/components/effects/musicplayer";
+import ScreenFX from "@/components/effects/screenfx";
+import GlitchPulse from "@/components/effects/glitchpulse";
+import ChannelZapTransition from "@/components/effects/channelzaptransition";
 
 // State
 

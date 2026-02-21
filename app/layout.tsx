@@ -1,7 +1,7 @@
 import "./globals.css";
 import AppShell from "@/components/AppShell";
 import { HudProvider } from "@/lib/hud-store";
-import NoZoom from "@/components/NoZoom";
+import NoZoom from "@/components/nozoom";
 
 export const metadata = {
   title: "FlorFlamer",

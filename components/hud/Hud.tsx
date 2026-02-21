@@ -1,8 +1,8 @@
-import NavBar from "./NavBar";
-import ChannelDisplay from "./ChannelDisplay";
-import HelpButton from "./HelpButton";
-import SettingsButton from "./SettingsButton";
-import MusicToggle from "./MusicButton";
+import NavBar from "./navbar";
+import ChannelDisplay from "./channeldisplay";
+import HelpButton from "./helpbutton";
+import SettingsButton from "./settingsbutton";
+import MusicToggle from "./musicbutton";
 
 const styles = {
   bottomLeftCluster: {

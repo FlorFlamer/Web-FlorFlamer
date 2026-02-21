@@ -1,10 +1,10 @@
 "use client";
 
 import { useHud } from "@/lib/hud-store";
-import HomeScene from "./home/HomeScene";
-import AboutScene from "./About/AboutScene";
-import ProjectsScene from "./Projects/ProjectsScene";
-import ContactScene from "./Contact/ContactScene";
+import HomeScene from "./home/homescene";
+import AboutScene from "./About/aboutscene";
+import ProjectsScene from "./Projects/projectscene";
+import ContactScene from "./Contact/contactscene";
 
 export default function SceneRouter() {
   const { currentChannel } = useHud();

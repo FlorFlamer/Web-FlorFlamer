@@ -30,7 +30,7 @@ function HudButton({
         // base
         "pointer-events-auto select-none",
         "rounded-xl border border-neutral-700/60 bg-neutral-900/70",
-        "px-3 py-2",
+        "px-4 pt-2 pb-2",
         // text
         "text-[12px] font-semibold tracking-wide text-neutral-100",
         // effects
@@ -53,7 +53,7 @@ export default function NavBar() {
   const go = (c: ChannelKey) => selectChannel(c);
 
   return (
-    <div className="pointer-events-none fixed left-0 top-0 z-40 w-full px-4 pt-3">
+    <div className="pointer-events-none fixed left-0 top-0 z-40 w-full px-6 pt-3">
       <div className="mx-auto flex w-full items-center justify-between gap-3">
         
         {/* - Left */}
