@@ -1,0 +1,42 @@
+# Node / Next.js
+
+node_modules/
+.next/
+out/
+
+# Env files (NUNCA no git)
+
+.env
+.env.local
+.env.development
+.env.production
+
+
+# Logs
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# OS / Editor lixo
+
+.DS_Store
+Thumbs.db
+
+# VS Code (opcional)
+.vscode/
+
+
+# Build / Cache tools
+
+.cache/
+.turbo/
+.vercel/
+
+
+# Testes / coverage
+
+FlorFlamer.zip
+coverage/

@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Text Fonts*/
+
+@font-face {
+  font-family: "KCPixelHand";
+  src: url("../public/fonts/KCPixelHand.otf") format("opentype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "BNWolfstar";
+  src: url("../public/fonts/BNWolfstar-Rounded.otf") format("opentype");
+  font-display: swap;
+}
+
+/* Global Styles */
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
