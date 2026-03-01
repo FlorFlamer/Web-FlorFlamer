@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 
 // Loading
 import LoadingScreen from "@/components/LoadingScreen";
@@ -28,7 +29,6 @@ const styles = {
     inset: 0,
     overflow: "hidden",
     overflowX: "hidden" as const,
-    background: "#f8f8f8ff",
     isolation: "isolate" as const,
   },
   content: {
@@ -66,59 +66,109 @@ type AppShellProps = {
 
 export default function AppShell({ children }: AppShellProps) {
   const { scanLinesEnabled, grimeEnabled, settingsOpen, helpOpen } = useHud();
-
-  // ✅ HOOK TEM DE SER AQUI (top-level)
   const preload = usePreloadAssets();
 
+  const [showLoading, setShowLoading] = useState(true);
+  const [bootFocus, setBootFocus] = useState(false);
+
+  // Overlay ativo enquanto carrega (anti-flash)
+  useEffect(() => {
+    if (!preload.done) setShowLoading(true);
+  }, [preload.done]);
+
+  // Blur durante o "power-on" (timing)
+  useEffect(() => {
+    if (!preload.done) return;
+
+    const t0 = window.setTimeout(() => setBootFocus(true), 80);
+    const t1 = window.setTimeout(() => setBootFocus(false), 730);
+
+    return () => {
+      window.clearTimeout(t0);
+      window.clearTimeout(t1);
+    };
+  }, [preload.done]);
+
   return (
-    <div style={styles.root}>
+    <div
+      style={{
+        ...styles.root,
+        background: showLoading && !preload.done ? "#0b0b0f" : "#f8f8f8ff",
+      }}
+    >
       <HudRouteSync />
-      <MusicPlayer targetVolume={0.35} fadeMs={900} />
-
-      <div style={styles.content}>{children}</div>
-
-      {/* FX Layer */}
-      <div style={styles.fxLayer}>
-        <ScreenFX
-          intensity={0.85}
-          scanlines={scanLinesEnabled ? 0.6 : 0}
-          grime={grimeEnabled ? 1 : 0}
-        />
-        <GlitchPulse />
-        <ChannelZapTransition durationMs={220} strength={0.85} />
-      </div>
-
-      {/* Help Drawer */}
       <div
         style={{
-          ...styles.drawerLayer,
-          pointerEvents: helpOpen ? "auto" : "none",
+          ...styles.content,
+          
+          // Mostrar (apenas quando tiver tudo carregado)
+          opacity: preload.done ? 1 : 0,
+          transition:
+            "opacity 180ms ease, filter 520ms ease, transform 520ms ease",
+
+          // Blur/Focus
+          filter: bootFocus ? "blur(10px)" : "blur(0px)",
+          transform: bootFocus ? "scale(1.01)" : "scale(1)",
         }}
       >
-        <HelpDrawer />
+        {children}
       </div>
 
-      {/* Settings Window */}
-      <div
-        style={{
-          ...styles.windowLayer,
-          pointerEvents: settingsOpen ? "auto" : "none",
-        }}
-      >
-        <SettingsWindow />
-      </div>
-
-      {/* HUD */}
-      <div style={styles.hudLayer}>
-        <Hud />
-      </div>
-
-      {/* ✅ Loading Screen por cima de tudo */}
-      {!preload.done && (
+      {/* Loading */}
+      {showLoading && (
         <LoadingScreen
           progress={preload.progress}
+          done={preload.done}
           failedCount={preload.failed.length}
+          onFinish={() => setShowLoading(false)}
         />
+      )}
+
+      {/* HUD/FX */}
+      {!showLoading && (
+        <>
+          <MusicPlayer targetVolume={0.35} fadeMs={900} />
+
+          {/* FX Layer */}
+
+          <div style={styles.fxLayer}>
+            <ScreenFX
+              intensity={0.85}
+              scanlines={scanLinesEnabled ? 0.6 : 0}
+              grime={grimeEnabled ? 1 : 0}
+            />
+            <GlitchPulse />
+            <ChannelZapTransition durationMs={220} strength={0.85} />
+          </div>
+
+          {/* Help Drawer */}
+
+          <div
+            style={{
+              ...styles.drawerLayer,
+              pointerEvents: helpOpen ? "auto" : "none",
+            }}
+          >
+            <HelpDrawer />
+          </div>
+          
+          {/* Settings Window */}
+
+          <div
+            style={{
+              ...styles.windowLayer,
+              pointerEvents: settingsOpen ? "auto" : "none",
+            }}
+          >
+            <SettingsWindow />
+          </div>
+            
+          {/* HUD */}
+
+          <div style={styles.hudLayer}>
+            <Hud />
+          </div>
+        </>
       )}
     </div>
   );
