@@ -1,7 +1,6 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useState } from "react";
 
 type VhsTapeCardProps = {
   title: string;
@@ -13,8 +12,6 @@ type VhsTapeCardProps = {
   onClick?: () => void;
 };
 
-const FALLBACK_ICON = "/img/hud/logo.webp";
-
 export default function VhsTapeCard({
   title,
   code,
@@ -24,12 +21,11 @@ export default function VhsTapeCard({
   accent,
   onClick,
 }: VhsTapeCardProps) {
-  const initialIcon =
-    icon && icon.trim().length > 0 ? icon.trim() : FALLBACK_ICON;
+  const iconSrc = icon?.trim() || "";
+  const heroSrc = heroImage?.trim() || "";
 
-  const [iconSrc, setIconSrc] = useState(initialIcon);
-  const [heroOk, setHeroOk] = useState(true);
-  const hasHeroImage = !!heroImage?.trim();
+  const hasIcon = iconSrc.length > 0;
+  const hasHeroImage = heroSrc.length > 0;
 
   return (
     <button
@@ -54,32 +50,30 @@ export default function VhsTapeCard({
       {/* LEFT block (icon area) */}
       <div className="flex h-full items-center justify-center">
         <div className="flex w-[76px] items-center justify-center">
-          <div className="h-16 w-16 shrink-0 flex items-center justify-center">
-            <img
-              src={iconSrc}
-              alt=""
-              className={[
-                "h-20 w-20 object-contain",
-                iconSrc === FALLBACK_ICON ? "opacity-80" : "",
-              ].join(" ")}
-              draggable={false}
-              onError={() => {
-                if (iconSrc !== FALLBACK_ICON) setIconSrc(FALLBACK_ICON);
-              }}
-            />
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center">
+            {hasIcon ? (
+              <img
+                src={iconSrc}
+                alt=""
+                className="h-20 w-20 object-contain"
+                draggable={false}
+              />
+            ) : (
+              // mantém o espaço, mas sem imagem (para perceber logo que falta icon)
+              <div className="h-20 w-20" aria-hidden="true" />
+            )}
           </div>
         </div>
       </div>
 
       {/* CENTER (title/logo) */}
       <div className="flex h-full flex-1 items-center justify-center px-4">
-        {hasHeroImage && heroOk ? (
+        {hasHeroImage ? (
           <img
-            src={heroImage}
+            src={heroSrc}
             alt=""
             className="h-[55px] object-contain"
             draggable={false}
-            onError={() => setHeroOk(false)}
           />
         ) : (
           <div
