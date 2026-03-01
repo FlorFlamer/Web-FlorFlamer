@@ -1,23 +1,23 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useMemo } from "react";
+
+// Loading
+import LoadingScreen from "@/components/LoadingScreen";
+import { usePreloadAssets } from "@/lib/usePreloadAssets";
 
 // UI layers
-
 import Hud from "@/components/hud/Hud";
 import SettingsWindow from "@/components/hud/SettingsWindow";
 import HelpDrawer from "@/components/hud/HelpDrawer";
 
 // FX / audio
-
 import MusicPlayer from "@/components/effects/MusicPlayer";
 import ScreenFX from "@/components/effects/ScreenFX";
 import GlitchPulse from "@/components/effects/GlitchPulse";
 import ChannelZapTransition from "@/components/effects/ChannelZapTransition";
 
 // State
-
 import { useHud } from "@/lib/hud-store";
 import HudRouteSync from "@/components/HudRouteSync";
 import { HUD_Z } from "@/lib/hud-layers";
@@ -67,8 +67,17 @@ type AppShellProps = {
 export default function AppShell({ children }: AppShellProps) {
   const { scanLinesEnabled, grimeEnabled, settingsOpen, helpOpen } = useHud();
 
-  const fxLayer = useMemo(() => {
-    return (
+  // ✅ HOOK TEM DE SER AQUI (top-level)
+  const preload = usePreloadAssets();
+
+  return (
+    <div style={styles.root}>
+      <HudRouteSync />
+      <MusicPlayer targetVolume={0.35} fadeMs={900} />
+
+      <div style={styles.content}>{children}</div>
+
+      {/* FX Layer */}
       <div style={styles.fxLayer}>
         <ScreenFX
           intensity={0.85}
@@ -78,17 +87,8 @@ export default function AppShell({ children }: AppShellProps) {
         <GlitchPulse />
         <ChannelZapTransition durationMs={220} strength={0.85} />
       </div>
-    );
-  }, [scanLinesEnabled, grimeEnabled]);
 
-  return (
-    <div style={styles.root}>
-      <HudRouteSync />
-      <MusicPlayer targetVolume={0.35} fadeMs={900} />
-      <div style={styles.content}>{children}</div>
-
-      {fxLayer}
-
+      {/* Help Drawer */}
       <div
         style={{
           ...styles.drawerLayer,
@@ -98,6 +98,7 @@ export default function AppShell({ children }: AppShellProps) {
         <HelpDrawer />
       </div>
 
+      {/* Settings Window */}
       <div
         style={{
           ...styles.windowLayer,
@@ -107,9 +108,18 @@ export default function AppShell({ children }: AppShellProps) {
         <SettingsWindow />
       </div>
 
+      {/* HUD */}
       <div style={styles.hudLayer}>
         <Hud />
       </div>
+
+      {/* ✅ Loading Screen por cima de tudo */}
+      {!preload.done && (
+        <LoadingScreen
+          progress={preload.progress}
+          failedCount={preload.failed.length}
+        />
+      )}
     </div>
   );
 }
