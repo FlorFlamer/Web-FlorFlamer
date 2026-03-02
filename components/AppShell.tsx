@@ -185,6 +185,8 @@ export default function AppShell({ children }: AppShellProps) {
             failedCount={failedCount}
             done={done && (hudReady || forceFinish)}
             forceFinish={forceFinish}
+            requireUserStart={true}
+            onUserStart={() => {}}
             onFinish={() => {
               finishedOnceRef.current = true;
               setShowLoading(false);

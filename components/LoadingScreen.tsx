@@ -8,8 +8,14 @@ type Props = {
   forceFinish?: boolean;
   failedCount?: number;
   logs?: string[];
+
+  // callbacks
   onFinish?: () => void;
   onStartFinish?: () => void;
+
+  // ✅ Press-to-start
+  requireUserStart?: boolean; // default: true
+  onUserStart?: () => void;   // gesto do user (unlock áudio), etc.
 };
 
 export default function LoadingScreen({
@@ -20,70 +26,106 @@ export default function LoadingScreen({
   logs = [],
   onFinish,
   onStartFinish,
+  requireUserStart = true,
+  onUserStart,
 }: Props) {
   const pct = Math.round(progress * 100);
 
-  const [finishing, setFinishing] = useState(false);
-  const startedFinishRef = useRef(false);
+  const [ready, setReady] = useState(false);       // assets done
+  const [started, setStarted] = useState(false);   // user pressed start
+  const [finishing, setFinishing] = useState(false); // playing exit anim
 
+  const startedRef = useRef(false);
+  const finishingRef = useRef(false);
+
+  const tFinishRef = useRef<number | null>(null);
+  const tHardRef = useRef<number | null>(null);
+
+  // terminal auto-follow
   const termRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    console.log("[LS] props", { done, forceFinish, progress, failedCount, logsLen: logs.length });
-  }, [done, forceFinish, progress, failedCount, logs.length]);
-
-  useEffect(() => {
-    console.log("[LS] finishing:", finishing);
-  }, [finishing]);
-
   useEffect(() => {
     const el = termRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [logs.length]);
 
+  // mark READY when preload is done (or forced)
   useEffect(() => {
-    if (!finishing) return;
+    if (done || forceFinish) setReady(true);
+  }, [done, forceFinish]);
 
-    const hard = window.setTimeout(() => {
-      console.log("[LS] HARD onFinish()");
-      onFinish?.();
-    }, 2200);
+  const beginExit = () => {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
 
-    return () => window.clearTimeout(hard);
-  }, [finishing, onFinish]);
-
-  useEffect(() => {
-    if (!(done || forceFinish)) return;
-    if (startedFinishRef.current) return;
-
-    startedFinishRef.current = true;
-    console.log("[LS] START OUTRO", { done, forceFinish });
-
-    // ✅ entra em finishing já (sem delay) -> garante classe ff-crt-exit aparece
     setFinishing(true);
     onStartFinish?.();
 
     const outroMs = 760;
 
-    const t1 = window.setTimeout(() => {
-      console.log("[LS] CALL onFinish()");
+    // schedule normal finish (end of animation)
+    if (tFinishRef.current) window.clearTimeout(tFinishRef.current);
+    tFinishRef.current = window.setTimeout(() => {
       onFinish?.();
     }, outroMs);
 
-    return () => window.clearTimeout(t1);
-  }, [done, forceFinish, onFinish, onStartFinish]);
-
-  useEffect(() => {
-    if (!finishing) return;
-
-    const hard = window.setTimeout(() => {
-      console.log("[LS] HARD onFinish()");
+    // hard fallback (never get stuck)
+    if (tHardRef.current) window.clearTimeout(tHardRef.current);
+    tHardRef.current = window.setTimeout(() => {
       onFinish?.();
     }, 2200);
+  };
 
-    return () => window.clearTimeout(hard);
-  }, [finishing, onFinish]);
+  const startNow = () => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
+    setStarted(true);
+
+    // ✅ this runs on user gesture (click/enter)
+    onUserStart?.();
+
+    // start exit immediately after user gesture
+    beginExit();
+  };
+
+  // auto-start if not requiring user start
+  useEffect(() => {
+    if (!ready) return;
+    if (startedRef.current) return;
+
+    if (!requireUserStart) {
+      startNow();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, requireUserStart]);
+
+  // keyboard: Enter / Space
+  useEffect(() => {
+    if (!ready) return;
+    if (!requireUserStart) return;
+    if (startedRef.current) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        startNow();
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, requireUserStart]);
+
+  // cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (tFinishRef.current) window.clearTimeout(tFinishRef.current);
+      if (tHardRef.current) window.clearTimeout(tHardRef.current);
+    };
+  }, []);
 
   const bootLines = useMemo(
     () => [
@@ -111,14 +153,17 @@ export default function LoadingScreen({
       ].join(" ")}
       style={{ pointerEvents: finishing ? "none" : "auto" }}
     >
+      {/* background base */}
       <div className="ff-bg pointer-events-none absolute inset-0 z-[0]" />
 
+      {/* terminal */}
       <div className="ff-termWrap pointer-events-none absolute inset-0 z-[1]">
         <div className="ff-termNoise absolute inset-0" />
         <div ref={termRef} className="ff-term absolute inset-0 px-6 py-5" aria-hidden="true">
           {bootLines.map((l, i) => (
             <div key={`boot-${i}`}>{l}</div>
           ))}
+
           {shownLogs.length === 0 ? (
             <>
               <div>WAIT/ASSETS:: listening…</div>
@@ -130,6 +175,7 @@ export default function LoadingScreen({
         </div>
       </div>
 
+      {/* scanlines base */}
       <div
         className="pointer-events-none absolute inset-0 opacity-20 z-[2]"
         style={{
@@ -138,9 +184,11 @@ export default function LoadingScreen({
         }}
       />
 
+      {/* vignette + power */}
       <div className="ff-vignette pointer-events-none absolute inset-0 z-[3]" />
       <div className="ff-crt-power pointer-events-none absolute inset-0 z-[4]" />
 
+      {/* UI */}
       <div className={["relative w-[min(520px,90vw)] px-6 py-6", "ff-ui z-[5]"].join(" ")}>
         <div
           className="ff-ui-text"
@@ -152,14 +200,14 @@ export default function LoadingScreen({
             textTransform: "uppercase",
           }}
         >
-          LOADING…
+          {ready ? "READY" : "LOADING…"}
         </div>
 
         <div className="ff-ui-bar mt-4 h-[10px] w-full overflow-hidden border border-white/40">
           <div
             className="h-full"
             style={{
-              width: `${pct}%`,
+              width: `${ready ? 100 : pct}%`,
               background: "rgba(255,255,255,0.85)",
               transition: "width 120ms linear",
             }}
@@ -168,12 +216,28 @@ export default function LoadingScreen({
 
         <div className="ff-ui-meta mt-3 flex items-center justify-between text-white/70">
           <div style={{ fontFamily: "BNWolfstar, system-ui, sans-serif", fontSize: 12 }}>
-            {pct}%
+            {ready ? "100%" : `${pct}%`}
           </div>
           <div style={{ fontFamily: "BNWolfstar, system-ui, sans-serif", fontSize: 12 }}>
             {failedCount > 0 ? `missing: ${failedCount}` : "assets ok"}
           </div>
         </div>
+
+        {/* ✅ PRESS TO START */}
+        {ready && requireUserStart && !started && (
+          <button
+            type="button"
+            onClick={startNow}
+            className="ff-startBtn mt-5 w-full border border-white/40 px-4 py-3 text-white/90 hover:bg-white/10 active:bg-white/15"
+            style={{
+              fontFamily: "KCPixelHand, monospace",
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+            }}
+          >
+            CLICK TO START / PRESS ENTER
+          </button>
+        )}
       </div>
 
       <style jsx>{`
@@ -186,23 +250,25 @@ export default function LoadingScreen({
           filter: blur(0.3px);
         }
 
+        .ff-startBtn {
+          animation: ffBlink 1.05s steps(2, end) infinite;
+        }
+
+        @keyframes ffBlink {
+          0% { opacity: 1; }
+          50% { opacity: 0.55; }
+          100% { opacity: 1; }
+        }
+
         .ff-crt-exit {
           animation: ffOverlayOut 760ms ease forwards;
         }
 
         @keyframes ffOverlayOut {
-          0% {
-            opacity: 1;
-          }
-          25% {
-            opacity: 1;
-          }
-          70% {
-            opacity: 0;
-          }
-          100% {
-            opacity: 0;
-          }
+          0% { opacity: 1; }
+          25% { opacity: 1; }
+          70% { opacity: 0; }
+          100% { opacity: 0; }
         }
 
         .ff-crt-exit .ff-termWrap,
@@ -263,18 +329,10 @@ export default function LoadingScreen({
         }
 
         @keyframes ffBgFade {
-          0% {
-            opacity: 1;
-          }
-          25% {
-            opacity: 1;
-          }
-          70% {
-            opacity: 0;
-          }
-          100% {
-            opacity: 0;
-          }
+          0% { opacity: 1; }
+          25% { opacity: 1; }
+          70% { opacity: 0; }
+          100% { opacity: 0; }
         }
 
         .ff-crt-exit .ff-vignette {
@@ -282,18 +340,10 @@ export default function LoadingScreen({
         }
 
         @keyframes ffVignetteHoldFade {
-          0% {
-            opacity: 1;
-          }
-          25% {
-            opacity: 1;
-          }
-          70% {
-            opacity: 0;
-          }
-          100% {
-            opacity: 0;
-          }
+          0% { opacity: 1; }
+          25% { opacity: 1; }
+          70% { opacity: 0; }
+          100% { opacity: 0; }
         }
 
         .ff-crt-power {
@@ -321,26 +371,11 @@ export default function LoadingScreen({
         }
 
         @keyframes ffPowerOn {
-          0% {
-            transform: scaleY(0.02) scaleX(0.92);
-            opacity: 0;
-          }
-          12% {
-            transform: scaleY(0.02) scaleX(1);
-            opacity: 1;
-          }
-          35% {
-            transform: scaleY(0.22) scaleX(1);
-            opacity: 1;
-          }
-          60% {
-            transform: scaleY(1) scaleX(1);
-            opacity: 0.95;
-          }
-          100% {
-            transform: scaleY(1) scaleX(1);
-            opacity: 0;
-          }
+          0% { transform: scaleY(0.02) scaleX(0.92); opacity: 0; }
+          12% { transform: scaleY(0.02) scaleX(1); opacity: 1; }
+          35% { transform: scaleY(0.22) scaleX(1); opacity: 1; }
+          60% { transform: scaleY(1) scaleX(1); opacity: 0.95; }
+          100% { transform: scaleY(1) scaleX(1); opacity: 0; }
         }
       `}</style>
     </div>
