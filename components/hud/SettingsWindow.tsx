@@ -102,7 +102,7 @@ function SettingsRowBase({
   return (
     <div style={rowWrapStyle}>
       <div style={iconBoxStyle}>
-        <Image src={iconSrc} alt="" width={52} height={52} draggable={false} />
+        <Image src={iconSrc} alt="" width={52} height={52} unoptimized draggable={false} />
       </div>
 
       <div style={{ minWidth: 0 }}>
@@ -164,12 +164,9 @@ function SettingsRowBlocked({
           alt=""
           width={45}
           height={45}
+          unoptimized
           draggable={false}
-          style={{
-            imageRendering: "pixelated",
-            pointerEvents: "none",
-            userSelect: "none",
-          }}
+          style={{ imageRendering: "pixelated", pointerEvents: "none", userSelect: "none" }}
         />
       </div>
     </div>

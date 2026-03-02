@@ -1,22 +1,16 @@
 @import "tailwindcss";
 
-html,
-body {
-  background: #0b0b0f;
-  height: 100%;
-}
-
 /* Text Fonts*/
 
 @font-face {
   font-family: "KCPixelHand";
-  src: url("../public/fonts/KCPixelHand.otf") format("opentype");
+  src: url("/fonts/KCPixelHand.otf") format("opentype");
   font-display: swap;
 }
 
 @font-face {
   font-family: "BNWolfstar";
-  src: url("../public/fonts/BNWolfstar-Rounded.otf") format("opentype");
+  src: url("/fonts/BNWolfstar-Rounded.otf") format("opentype");
   font-display: swap;
 }
 

@@ -1,3 +1,8 @@
+"use client";
+
+import { useEffect } from "react";
+import { useHud } from "@/lib/hud-store";
+
 import NavBar from "./NavBar";
 import ChannelDisplay from "./ChannelDisplay";
 import HelpButton from "./HelpButton";
@@ -23,6 +28,22 @@ const styles = {
 };
 
 export default function Hud() {
+  const { setHudReady } = useHud();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setHudReady(true);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setHudReady]);
+
   return (
     <>
       <NavBar />

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Loading
 import LoadingScreen from "@/components/LoadingScreen";
@@ -65,20 +65,47 @@ type AppShellProps = {
 };
 
 export default function AppShell({ children }: AppShellProps) {
-  const { scanLinesEnabled, grimeEnabled, settingsOpen, helpOpen } = useHud();
-  const preload = usePreloadAssets();
+  const { scanLinesEnabled, grimeEnabled, settingsOpen, helpOpen, hudReady } = useHud();
+  const preload = usePreloadAssets() as any;
 
   const [showLoading, setShowLoading] = useState(true);
   const [bootFocus, setBootFocus] = useState(false);
+  const [forceFinish, setForceFinish] = useState(false);
+
+  // ✅ evita reativar o loading depois de já ter terminado uma vez
+  const finishedOnceRef = useRef(false);
+
+  const done = !!preload?.done;
+  const progress = typeof preload?.progress === "number" ? preload.progress : 0;
+  const logs: string[] = Array.isArray(preload?.logs) ? preload.logs : [];
+  const failedCount =
+    Array.isArray(preload?.failed)
+      ? preload.failed.length
+      : typeof preload?.failedCount === "number"
+        ? preload.failedCount
+        : 0;
+
+  // ✅ FAILSAFE: se hudReady não vier, força o finish (MAS sem "matar" já)
+  useEffect(() => {
+    if (!done) return;
+    if (!showLoading) return;
+    if (hudReady) return;
+
+    const t = window.setTimeout(() => {
+      setForceFinish(true);
+    }, 2500);
+
+    return () => window.clearTimeout(t);
+  }, [done, showLoading, hudReady]);
 
   // Overlay ativo enquanto carrega (anti-flash)
   useEffect(() => {
-    if (!preload.done) setShowLoading(true);
-  }, [preload.done]);
+    if (!done && !finishedOnceRef.current) setShowLoading(true);
+  }, [done]);
 
   // Blur durante o "power-on" (timing)
   useEffect(() => {
-    if (!preload.done) return;
+    if (!done) return;
 
     const t0 = window.setTimeout(() => setBootFocus(true), 80);
     const t1 = window.setTimeout(() => setBootFocus(false), 730);
@@ -87,26 +114,22 @@ export default function AppShell({ children }: AppShellProps) {
       window.clearTimeout(t0);
       window.clearTimeout(t1);
     };
-  }, [preload.done]);
+  }, [done]);
 
   return (
     <div
       style={{
         ...styles.root,
-        background: showLoading && !preload.done ? "#0b0b0f" : "#f8f8f8ff",
+        background: showLoading && !done ? "#0b0b0f" : "#f8f8f8ff",
       }}
     >
       <HudRouteSync />
+
       <div
         style={{
           ...styles.content,
-          
-          // Mostrar (apenas quando tiver tudo carregado)
-          opacity: preload.done ? 1 : 0,
-          transition:
-            "opacity 180ms ease, filter 520ms ease, transform 520ms ease",
-
-          // Blur/Focus
+          opacity: done ? 1 : 0,
+          transition: "opacity 180ms ease, filter 520ms ease, transform 520ms ease",
           filter: bootFocus ? "blur(10px)" : "blur(0px)",
           transform: bootFocus ? "scale(1.01)" : "scale(1)",
         }}
@@ -114,22 +137,10 @@ export default function AppShell({ children }: AppShellProps) {
         {children}
       </div>
 
-      {/* Loading */}
-      {showLoading && (
-        <LoadingScreen
-          progress={preload.progress}
-          done={preload.done}
-          failedCount={preload.failed.length}
-          onFinish={() => setShowLoading(false)}
-        />
-      )}
-
-      {/* HUD/FX */}
-      {!showLoading && (
+      {/* ✅ Monta HUD/FX assim que assets ok (mesmo com loading ainda por cima) */}
+      {done && (
         <>
           <MusicPlayer targetVolume={0.35} fadeMs={900} />
-
-          {/* FX Layer */}
 
           <div style={styles.fxLayer}>
             <ScreenFX
@@ -141,35 +152,46 @@ export default function AppShell({ children }: AppShellProps) {
             <ChannelZapTransition durationMs={220} strength={0.85} />
           </div>
 
-          {/* Help Drawer */}
-
           <div
             style={{
               ...styles.drawerLayer,
-              pointerEvents: helpOpen ? "auto" : "none",
+              pointerEvents: !showLoading && helpOpen ? "auto" : "none",
             }}
           >
             <HelpDrawer />
           </div>
-          
-          {/* Settings Window */}
 
           <div
             style={{
               ...styles.windowLayer,
-              pointerEvents: settingsOpen ? "auto" : "none",
+              pointerEvents: !showLoading && settingsOpen ? "auto" : "none",
             }}
           >
             <SettingsWindow />
           </div>
-            
-          {/* HUD */}
 
           <div style={styles.hudLayer}>
             <Hud />
           </div>
         </>
       )}
+
+      {/* Loading */}
+        {showLoading && (
+          <LoadingScreen
+            key="boot-loading"
+            progress={progress}
+            logs={logs}
+            failedCount={failedCount}
+            done={done && (hudReady || forceFinish)}
+            forceFinish={forceFinish}
+            onFinish={() => {
+              finishedOnceRef.current = true;
+              setShowLoading(false);
+              setForceFinish(false);
+            }}
+          />
+        )}
     </div>
   );
 }

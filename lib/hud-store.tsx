@@ -7,7 +7,6 @@ import { CHANNEL_ORDER } from "./channels";
 import { preloadSfx, playSfx, setSfxEnabled } from "@/lib/sfx";
 
 // Keybinds
-
 const KEY_HELP = "h";
 const KEY_SETTINGS = "o";
 const KEY_MUSIC = "m";
@@ -61,6 +60,9 @@ type HudState = {
 
   channelZapId: number;
   triggerChannelZap: () => void;
+
+  hudReady: boolean;
+  setHudReady: (v: boolean) => void;
 };
 
 const HudContext = createContext<HudState | null>(null);
@@ -144,6 +146,9 @@ export function HudProvider({ children }: { children: React.ReactNode }) {
       playSfx("zap", { volume: 1 });
     }
   };
+
+  // ✅ HUD ready flag (set by <Hud /> after it mounts/paints)
+  const [hudReady, setHudReady] = useState(false);
 
   const prevHelpOpenRef = useRef(helpOpen);
   useEffect(() => {
@@ -523,6 +528,9 @@ export function HudProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(
     () => ({
+      hudReady,
+      setHudReady,
+
       currentChannel,
       setCurrentChannel,
       selectChannel,
@@ -570,6 +578,7 @@ export function HudProvider({ children }: { children: React.ReactNode }) {
       triggerChannelZap,
     }),
     [
+      hudReady,
       currentChannel,
       setupDone,
       language,
