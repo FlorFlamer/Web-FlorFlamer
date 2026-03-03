@@ -9,13 +9,11 @@ type Props = {
   failedCount?: number;
   logs?: string[];
 
-  // callbacks
   onFinish?: () => void;
   onStartFinish?: () => void;
 
-  // ✅ Press-to-start
-  requireUserStart?: boolean; // default: true
-  onUserStart?: () => void;   // gesto do user (unlock áudio), etc.
+  requireUserStart?: boolean;
+  onUserStart?: () => void;
 };
 
 export default function LoadingScreen({
@@ -31,30 +29,21 @@ export default function LoadingScreen({
 }: Props) {
   const pct = Math.round(progress * 100);
 
-  const [ready, setReady] = useState(false);       // assets done
-  const [started, setStarted] = useState(false);   // user pressed start
-  const [finishing, setFinishing] = useState(false); // playing exit anim
+  const [ready, setReady] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const [showStart, setShowStart] = useState(false);
 
   const startedRef = useRef(false);
   const finishingRef = useRef(false);
 
   const tFinishRef = useRef<number | null>(null);
   const tHardRef = useRef<number | null>(null);
+  const tShowStartRef = useRef<number | null>(null);
 
-  // terminal auto-follow
   const termRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const el = termRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [logs.length]);
 
-  // mark READY when preload is done (or forced)
-  useEffect(() => {
-    if (done || forceFinish) setReady(true);
-  }, [done, forceFinish]);
-
-  const beginExit = () => {
+    const beginExit = () => {
     if (finishingRef.current) return;
     finishingRef.current = true;
 
@@ -63,46 +52,45 @@ export default function LoadingScreen({
 
     const outroMs = 760;
 
-    // schedule normal finish (end of animation)
     if (tFinishRef.current) window.clearTimeout(tFinishRef.current);
     tFinishRef.current = window.setTimeout(() => {
       onFinish?.();
     }, outroMs);
 
-    // hard fallback (never get stuck)
     if (tHardRef.current) window.clearTimeout(tHardRef.current);
     tHardRef.current = window.setTimeout(() => {
       onFinish?.();
     }, 2200);
   };
 
+  useEffect(() => {
+    const el = termRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [logs.length]);
+
+  useEffect(() => {
+    if (!(done || forceFinish)) return;
+
+    setReady(true);
+
+    if (tShowStartRef.current) window.clearTimeout(tShowStartRef.current);
+    tShowStartRef.current = window.setTimeout(() => {
+      setShowStart(true);
+    }, 160);
+  }, [done, forceFinish]);
+
   const startNow = () => {
     if (startedRef.current) return;
     startedRef.current = true;
 
     setStarted(true);
-
-    // ✅ this runs on user gesture (click/enter)
     onUserStart?.();
-
-    // start exit immediately after user gesture
     beginExit();
   };
 
-  // auto-start if not requiring user start
   useEffect(() => {
-    if (!ready) return;
-    if (startedRef.current) return;
-
-    if (!requireUserStart) {
-      startNow();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, requireUserStart]);
-
-  // keyboard: Enter / Space
-  useEffect(() => {
-    if (!ready) return;
+    if (!showStart) return;
     if (!requireUserStart) return;
     if (startedRef.current) return;
 
@@ -116,20 +104,25 @@ export default function LoadingScreen({
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, requireUserStart]);
+  }, [showStart, requireUserStart]);
 
-  // cleanup timers on unmount
+  useEffect(() => {
+    if (!showStart) return;
+    if (startedRef.current) return;
+    if (!requireUserStart) startNow();
+  }, [showStart, requireUserStart]);
+
   useEffect(() => {
     return () => {
       if (tFinishRef.current) window.clearTimeout(tFinishRef.current);
       if (tHardRef.current) window.clearTimeout(tHardRef.current);
+      if (tShowStartRef.current) window.clearTimeout(tShowStartRef.current);
     };
   }, []);
 
   const bootLines = useMemo(
     () => [
-      "FLORFLAMER OS v0.9  (CRT BOOT)",
+      "Hydralis OS v0.0.8  (CRT BOOT)",
       "------------------------------------------",
       "BOOT/INIT :: building preload queue...",
       "BOOT/GFX  :: initializing CRT pipeline...",
@@ -145,25 +138,25 @@ export default function LoadingScreen({
     return logs.length > max ? logs.slice(-max) : logs;
   }, [logs]);
 
+  const swapping = ready && !started && !finishing;
+
   return (
     <div
       className={[
         "fixed inset-0 z-[9999] flex items-center justify-center",
+        swapping ? "ff-swap" : "",
         finishing ? "ff-crt-exit" : "pointer-events-auto",
       ].join(" ")}
       style={{ pointerEvents: finishing ? "none" : "auto" }}
     >
-      {/* background base */}
       <div className="ff-bg pointer-events-none absolute inset-0 z-[0]" />
 
-      {/* terminal */}
       <div className="ff-termWrap pointer-events-none absolute inset-0 z-[1]">
         <div className="ff-termNoise absolute inset-0" />
         <div ref={termRef} className="ff-term absolute inset-0 px-6 py-5" aria-hidden="true">
           {bootLines.map((l, i) => (
             <div key={`boot-${i}`}>{l}</div>
           ))}
-
           {shownLogs.length === 0 ? (
             <>
               <div>WAIT/ASSETS:: listening…</div>
@@ -175,7 +168,6 @@ export default function LoadingScreen({
         </div>
       </div>
 
-      {/* scanlines base */}
       <div
         className="pointer-events-none absolute inset-0 opacity-20 z-[2]"
         style={{
@@ -184,30 +176,34 @@ export default function LoadingScreen({
         }}
       />
 
-      {/* vignette + power */}
       <div className="ff-vignette pointer-events-none absolute inset-0 z-[3]" />
       <div className="ff-crt-power pointer-events-none absolute inset-0 z-[4]" />
 
-      {/* UI */}
-      <div className={["relative w-[min(520px,90vw)] px-6 py-6", "ff-ui z-[5]"].join(" ")}>
-        <div
-          className="ff-ui-text"
-          style={{
-            fontFamily: "KCPixelHand, monospace",
-            letterSpacing: "0.18em",
-            color: "rgba(255,255,255,0.92)",
-            fontSize: 22,
-            textTransform: "uppercase",
-          }}
-        >
-          {ready ? "READY" : "LOADING…"}
+      {/* LOADING UI */}
+      <div className="relative w-[min(520px,90vw)] px-6 py-6 ff-ui z-[5]" aria-hidden={swapping}>
+        <div className="flex items-center justify-between gap-4">
+          <div
+            className="ff-ui-text"
+            style={{
+              fontFamily: "KCPixelHand, monospace",
+              letterSpacing: "0.18em",
+              color: "rgba(255,255,255,0.92)",
+              fontSize: 22,
+              textTransform: "uppercase",
+            }}
+          >
+            LOADING…
+          </div>
+
+          {/* Flamer animado */}
+          <div className="ff-loadingSprite" aria-hidden="true" />
         </div>
 
         <div className="ff-ui-bar mt-4 h-[10px] w-full overflow-hidden border border-white/40">
           <div
             className="h-full"
             style={{
-              width: `${ready ? 100 : pct}%`,
+              width: `${pct}%`,
               background: "rgba(255,255,255,0.85)",
               transition: "width 120ms linear",
             }}
@@ -216,29 +212,34 @@ export default function LoadingScreen({
 
         <div className="ff-ui-meta mt-3 flex items-center justify-between text-white/70">
           <div style={{ fontFamily: "BNWolfstar, system-ui, sans-serif", fontSize: 12 }}>
-            {ready ? "100%" : `${pct}%`}
+            {pct}%
           </div>
           <div style={{ fontFamily: "BNWolfstar, system-ui, sans-serif", fontSize: 12 }}>
             {failedCount > 0 ? `missing: ${failedCount}` : "assets ok"}
           </div>
         </div>
-
-        {/* ✅ PRESS TO START */}
-        {ready && requireUserStart && !started && (
-          <button
-            type="button"
-            onClick={startNow}
-            className="ff-startBtn mt-5 w-full border border-white/40 px-4 py-3 text-white/90 hover:bg-white/10 active:bg-white/15"
-            style={{
-              fontFamily: "KCPixelHand, monospace",
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-            }}
-          >
-            CLICK TO START / PRESS ENTER
-          </button>
-        )}
       </div>
+
+      {/* START button */}
+      {showStart && requireUserStart && !started && (
+        <div className="absolute inset-0 z-[6] flex items-center justify-center">
+          <div className="ff-startWrap">
+            <button
+              type="button"
+              onClick={startNow}
+              className="ff-startBtn border border-white/40 px-8 py-4 text-white/90 hover:bg-white/10 active:bg-white/15"
+              style={{
+                fontFamily: "KCPixelHand, monospace",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                fontSize: 18,
+              }}
+            >
+              CLICK TO START / PRESS ENTER
+            </button>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .ff-bg {
@@ -258,6 +259,36 @@ export default function LoadingScreen({
           0% { opacity: 1; }
           50% { opacity: 0.55; }
           100% { opacity: 1; }
+        }
+
+        .ff-swap .ff-ui {
+          animation: ffUiFade 220ms ease forwards;
+          pointer-events: none;
+        }
+
+        .ff-startWrap {
+          opacity: 0;
+          transform: translateY(4px);
+          filter: blur(1.2px);
+          pointer-events: none;
+        }
+
+        .ff-swap .ff-startWrap {
+          animation: ffStartFadeIn 220ms ease forwards;
+          pointer-events: auto;
+        }
+
+        @keyframes ffStartFadeIn {
+          0% {
+            opacity: 0;
+            transform: translateY(4px);
+            filter: blur(1.2px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0px);
+            filter: blur(0px);
+          }
         }
 
         .ff-crt-exit {
@@ -284,7 +315,7 @@ export default function LoadingScreen({
           font-size: 12px;
           line-height: 1.4;
           letter-spacing: 0.03em;
-          color: rgba(160, 255, 200, 0.55);
+          color: rgba(160, 255, 200, 0.25);
           white-space: pre;
           text-shadow: 0 0 10px rgba(120, 255, 180, 0.12);
           scrollbar-width: none;
@@ -376,6 +407,38 @@ export default function LoadingScreen({
           35% { transform: scaleY(0.22) scaleX(1); opacity: 1; }
           60% { transform: scaleY(1) scaleX(1); opacity: 0.95; }
           100% { transform: scaleY(1) scaleX(1); opacity: 0; }
+        }
+
+        .ff-loadingSprite {
+          width: 25px;
+          height: 25px;
+
+          background-image: url("/img/anima_loding.webp");
+          background-repeat: no-repeat;
+          background-position: 0 0;
+          background-size: 200px 25px;
+
+          /* scaling (mantém o frame certo) */
+          transform: scale(1.2);
+          transform-origin: right center;
+
+          image-rendering: pixelated;
+          opacity: 0.9;
+
+          will-change: background-position;
+          animation: ffSpritePlay 0.85s steps(8) infinite;
+        }
+
+        @keyframes ffSpritePlay {
+          from { background-position: 0 0; }
+          to { background-position: -200px 0; }
+        }
+
+        /* respeita reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .ff-loadingSprite {
+            animation: none;
+          }
         }
       `}</style>
     </div>

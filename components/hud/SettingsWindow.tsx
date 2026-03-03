@@ -763,7 +763,7 @@ export default function SettingsWindow() {
           />
 
           <SettingsRowBlocked
-            iconSrc="/img/settings/language.webp"
+            iconSrc="/img/settings/ing.webp"
             title="LANGUAGE"
             desc="To change the language of all menus (PT/ENG/ES/FR)"
             note="(⚠ IN THE WORKS)"

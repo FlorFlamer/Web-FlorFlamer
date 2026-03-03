@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 // Loading
 import LoadingScreen from "@/components/LoadingScreen";
 import { usePreloadAssets } from "@/lib/usePreloadAssets";
+import FirstRunWindow from "@/components/hud/FirstRunWindow";
 
 // UI layers
 import Hud from "@/components/hud/Hud";
@@ -31,10 +32,15 @@ const styles = {
     overflowX: "hidden" as const,
     isolation: "isolate" as const,
   },
+  modalLayer: {
+    position: "absolute" as const,
+    inset: 0,
+    zIndex: HUD_Z.modal,
+  },
   content: {
     position: "absolute" as const,
     inset: 0,
-    zIndex: 0,
+    zIndex: HUD_Z.content,
   },
   fxLayer: {
     position: "absolute" as const,
@@ -65,14 +71,13 @@ type AppShellProps = {
 };
 
 export default function AppShell({ children }: AppShellProps) {
-  const { scanLinesEnabled, grimeEnabled, settingsOpen, helpOpen, hudReady } = useHud();
+  const { scanLinesEnabled, grimeEnabled, settingsOpen, helpOpen, hudReady, setupDone } = useHud();
   const preload = usePreloadAssets() as any;
 
   const [showLoading, setShowLoading] = useState(true);
   const [bootFocus, setBootFocus] = useState(false);
   const [forceFinish, setForceFinish] = useState(false);
 
-  // ✅ evita reativar o loading depois de já ter terminado uma vez
   const finishedOnceRef = useRef(false);
 
   const done = !!preload?.done;
@@ -82,10 +87,9 @@ export default function AppShell({ children }: AppShellProps) {
     Array.isArray(preload?.failed)
       ? preload.failed.length
       : typeof preload?.failedCount === "number"
-        ? preload.failedCount
-        : 0;
+      ? preload.failedCount
+      : 0;
 
-  // ✅ FAILSAFE: se hudReady não vier, força o finish (MAS sem "matar" já)
   useEffect(() => {
     if (!done) return;
     if (!showLoading) return;
@@ -98,12 +102,10 @@ export default function AppShell({ children }: AppShellProps) {
     return () => window.clearTimeout(t);
   }, [done, showLoading, hudReady]);
 
-  // Overlay ativo enquanto carrega (anti-flash)
   useEffect(() => {
     if (!done && !finishedOnceRef.current) setShowLoading(true);
   }, [done]);
 
-  // Blur durante o "power-on" (timing)
   useEffect(() => {
     if (!done) return;
 
@@ -130,17 +132,22 @@ export default function AppShell({ children }: AppShellProps) {
           ...styles.content,
           opacity: done ? 1 : 0,
           transition: "opacity 180ms ease, filter 520ms ease, transform 520ms ease",
-          filter: bootFocus ? "blur(10px)" : "blur(0px)",
-          transform: bootFocus ? "scale(1.01)" : "scale(1)",
+          filter: bootFocus 
+            ? "blur(10px)" 
+            : "blur(0px)",
+          transform: bootFocus 
+            ? "scale(1.01)" 
+            : "scale(1)",
         }}
       >
         {children}
       </div>
 
-      {/* ✅ Monta HUD/FX assim que assets ok (mesmo com loading ainda por cima) */}
       {done && (
         <>
-          <MusicPlayer targetVolume={0.35} fadeMs={900} />
+          {done && !showLoading && (
+            <MusicPlayer targetVolume={0.35} fadeMs={900} />
+          )}
 
           <div style={styles.fxLayer}>
             <ScreenFX
@@ -161,18 +168,19 @@ export default function AppShell({ children }: AppShellProps) {
             <HelpDrawer />
           </div>
 
-          <div
-            style={{
-              ...styles.windowLayer,
-              pointerEvents: !showLoading && settingsOpen ? "auto" : "none",
-            }}
-          >
+          <div style={styles.windowLayer}>
             <SettingsWindow />
           </div>
 
           <div style={styles.hudLayer}>
             <Hud />
           </div>
+          
+          {!showLoading && !setupDone && (
+            <div style={{ ...styles.modalLayer, pointerEvents: "auto" }}>
+              <FirstRunWindow />
+            </div>
+          )}
         </>
       )}
 

@@ -14,7 +14,8 @@ export const PRELOAD_IMAGES: string[] = [
   // Search / Settings
   "/img/search/filter.webp",
   "/img/settings/block.webp",
-  "/img/settings/language.webp",
+  "/img/settings/ing.webp",
+  "/img/settings/pt.webp",  
   "/img/settings/light_mode.webp",
   "/img/settings/no.webp",
   "/img/settings/yes.webp",
@@ -22,7 +23,7 @@ export const PRELOAD_IMAGES: string[] = [
   // Textures
   "/img/textures/grime.webp",
 
-  // Projects (os que existem agora)
+  // Projects
   "/img/projects/bad-trip/icon.webp",
   "/img/projects/bad-trip/hero.webp",
   "/img/projects/flint-flamer/icon.webp",

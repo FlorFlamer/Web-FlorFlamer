@@ -146,8 +146,7 @@ export function HudProvider({ children }: { children: React.ReactNode }) {
       playSfx("zap", { volume: 1 });
     }
   };
-
-  // ✅ HUD ready flag (set by <Hud /> after it mounts/paints)
+  
   const [hudReady, setHudReady] = useState(false);
 
   const prevHelpOpenRef = useRef(helpOpen);

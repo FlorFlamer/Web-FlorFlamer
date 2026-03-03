@@ -14,10 +14,7 @@ type PreloadState = {
 
 const SESSION_KEY = "ff_assets_loaded_v1";
 
-/* ---------------------------------- */
-/* Utils                              */
-/* ---------------------------------- */
-
+/* Utils */
 function withTimeout<T>(p: Promise<T>, ms: number, label: string) {
   return new Promise<T>((resolve, reject) => {
     const t = window.setTimeout(() => reject(new Error(`timeout:${label}`)), ms);
@@ -49,10 +46,7 @@ async function preloadFont(fontFamily: string) {
   }
 }
 
-/* ---------------------------------- */
-/* Hook                               */
-/* ---------------------------------- */
-
+/* Hook */
 export function usePreloadAssets() {
   const [state, setState] = useState<PreloadState>({
     progress: 0,
