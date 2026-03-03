@@ -22,5 +22,6 @@ export const HUD_Z = {
   // top priority
 
   modal: 100,
+  content: 0,
   
 } as const;

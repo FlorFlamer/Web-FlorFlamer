@@ -69,6 +69,8 @@ export default function NavBar() {
               alt="Logo"
               width={18}
               height={18}
+              unoptimized
+              priority
               className="mr-2 inline-block -translate-y-[1.5px] align-middle"
             />
             <span style={{ fontFamily: "KCPixelHand" }}>HOME</span>
@@ -103,6 +105,8 @@ export default function NavBar() {
             alt="Email"
             width={18}
             height={14}
+            unoptimized
+            priority
             className="mr-2 inline-block relative -top-[1px] align-middle"
           />
           <span style={{ fontFamily: "KCPixelHand" }}>CONTACT</span>

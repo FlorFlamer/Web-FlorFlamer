@@ -1,23 +1,25 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
+
+// Loading
+import LoadingScreen from "@/components/LoadingScreen";
+import { usePreloadAssets } from "@/lib/usePreloadAssets";
+import FirstRunWindow from "@/components/hud/FirstRunWindow";
 
 // UI layers
-
 import Hud from "@/components/hud/Hud";
 import SettingsWindow from "@/components/hud/SettingsWindow";
 import HelpDrawer from "@/components/hud/HelpDrawer";
 
 // FX / audio
-
 import MusicPlayer from "@/components/effects/MusicPlayer";
 import ScreenFX from "@/components/effects/ScreenFX";
 import GlitchPulse from "@/components/effects/GlitchPulse";
 import ChannelZapTransition from "@/components/effects/ChannelZapTransition";
 
 // State
-
 import { useHud } from "@/lib/hud-store";
 import HudRouteSync from "@/components/HudRouteSync";
 import { HUD_Z } from "@/lib/hud-layers";
@@ -28,13 +30,17 @@ const styles = {
     inset: 0,
     overflow: "hidden",
     overflowX: "hidden" as const,
-    background: "#f8f8f8ff",
     isolation: "isolate" as const,
+  },
+  modalLayer: {
+    position: "absolute" as const,
+    inset: 0,
+    zIndex: HUD_Z.modal,
   },
   content: {
     position: "absolute" as const,
     inset: 0,
-    zIndex: 0,
+    zIndex: HUD_Z.content,
   },
   fxLayer: {
     position: "absolute" as const,
@@ -65,51 +71,137 @@ type AppShellProps = {
 };
 
 export default function AppShell({ children }: AppShellProps) {
-  const { scanLinesEnabled, grimeEnabled, settingsOpen, helpOpen } = useHud();
+  const { scanLinesEnabled, grimeEnabled, settingsOpen, helpOpen, hudReady, setupDone } = useHud();
+  const preload = usePreloadAssets() as any;
 
-  const fxLayer = useMemo(() => {
-    return (
-      <div style={styles.fxLayer}>
-        <ScreenFX
-          intensity={0.85}
-          scanlines={scanLinesEnabled ? 0.6 : 0}
-          grime={grimeEnabled ? 1 : 0}
-        />
-        <GlitchPulse />
-        <ChannelZapTransition durationMs={220} strength={0.85} />
-      </div>
-    );
-  }, [scanLinesEnabled, grimeEnabled]);
+  const [showLoading, setShowLoading] = useState(true);
+  const [bootFocus, setBootFocus] = useState(false);
+  const [forceFinish, setForceFinish] = useState(false);
+
+  const finishedOnceRef = useRef(false);
+
+  const done = !!preload?.done;
+  const progress = typeof preload?.progress === "number" ? preload.progress : 0;
+  const logs: string[] = Array.isArray(preload?.logs) ? preload.logs : [];
+  const failedCount =
+    Array.isArray(preload?.failed)
+      ? preload.failed.length
+      : typeof preload?.failedCount === "number"
+      ? preload.failedCount
+      : 0;
+
+  useEffect(() => {
+    if (!done) return;
+    if (!showLoading) return;
+    if (hudReady) return;
+
+    const t = window.setTimeout(() => {
+      setForceFinish(true);
+    }, 2500);
+
+    return () => window.clearTimeout(t);
+  }, [done, showLoading, hudReady]);
+
+  useEffect(() => {
+    if (!done && !finishedOnceRef.current) setShowLoading(true);
+  }, [done]);
+
+  useEffect(() => {
+    if (!done) return;
+
+    const t0 = window.setTimeout(() => setBootFocus(true), 80);
+    const t1 = window.setTimeout(() => setBootFocus(false), 730);
+
+    return () => {
+      window.clearTimeout(t0);
+      window.clearTimeout(t1);
+    };
+  }, [done]);
 
   return (
-    <div style={styles.root}>
+    <div
+      style={{
+        ...styles.root,
+        background: showLoading && !done ? "#0b0b0f" : "#f8f8f8ff",
+      }}
+    >
       <HudRouteSync />
-      <MusicPlayer targetVolume={0.35} fadeMs={900} />
-      <div style={styles.content}>{children}</div>
-
-      {fxLayer}
 
       <div
         style={{
-          ...styles.drawerLayer,
-          pointerEvents: helpOpen ? "auto" : "none",
+          ...styles.content,
+          opacity: done ? 1 : 0,
+          transition: "opacity 180ms ease, filter 520ms ease, transform 520ms ease",
+          filter: bootFocus 
+            ? "blur(10px)" 
+            : "blur(0px)",
+          transform: bootFocus 
+            ? "scale(1.01)" 
+            : "scale(1)",
         }}
       >
-        <HelpDrawer />
+        {children}
       </div>
 
-      <div
-        style={{
-          ...styles.windowLayer,
-          pointerEvents: settingsOpen ? "auto" : "none",
-        }}
-      >
-        <SettingsWindow />
-      </div>
+      {done && (
+        <>
+          {done && !showLoading && (
+            <MusicPlayer targetVolume={0.35} fadeMs={900} />
+          )}
 
-      <div style={styles.hudLayer}>
-        <Hud />
-      </div>
+          <div style={styles.fxLayer}>
+            <ScreenFX
+              intensity={0.85}
+              scanlines={scanLinesEnabled ? 0.6 : 0}
+              grime={grimeEnabled ? 1 : 0}
+            />
+            <GlitchPulse />
+            <ChannelZapTransition durationMs={220} strength={0.85} />
+          </div>
+
+          <div
+            style={{
+              ...styles.drawerLayer,
+              pointerEvents: !showLoading && helpOpen ? "auto" : "none",
+            }}
+          >
+            <HelpDrawer />
+          </div>
+
+          <div style={styles.windowLayer}>
+            <SettingsWindow />
+          </div>
+
+          <div style={styles.hudLayer}>
+            <Hud />
+          </div>
+          
+          {!showLoading && !setupDone && (
+            <div style={{ ...styles.modalLayer, pointerEvents: "auto" }}>
+              <FirstRunWindow />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Loading */}
+        {showLoading && (
+          <LoadingScreen
+            key="boot-loading"
+            progress={progress}
+            logs={logs}
+            failedCount={failedCount}
+            done={done && (hudReady || forceFinish)}
+            forceFinish={forceFinish}
+            requireUserStart={true}
+            onUserStart={() => {}}
+            onFinish={() => {
+              finishedOnceRef.current = true;
+              setShowLoading(false);
+              setForceFinish(false);
+            }}
+          />
+        )}
     </div>
   );
 }

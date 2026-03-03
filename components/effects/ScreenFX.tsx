@@ -83,7 +83,6 @@ export default function ScreenFX({
         position: "absolute" as const,
         inset: 0,
         opacity: N,
-        backgroundImage: "url(/fx/noise.webp)",
         backgroundRepeat: "repeat",
         mixBlendMode: "overlay" as const,
       },

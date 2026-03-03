@@ -39,4 +39,8 @@ Thumbs.db
 # Testes / coverage
 
 FlorFlamer.zip
+components.zip
+app.zip
+lib.zip
+public.zip
 coverage/
