@@ -1,23 +1,16 @@
 "use client";
 
-type Rect = { x: number; y: number; w: number; h: number };
+import Image from "next/image";
 
-/**
- * FASE 1:
- * - Só layout (blocos/placeholder).
- * - Sem transform scale (para não cortar no resize).
- * - Tudo em % dentro de um frame com aspect-ratio.
- */
+type Rect = { x: number; y: number; w: number; h: number; z: number };
 
 const BASE_W = 975;
 const BASE_H = 478;
 
-// vindo do mapa de cores
-const RECTS: Record<"lamp" | "sofa" | "table" | "turntable", Rect> = {
-  lamp: { x: 0, y: 0, w: 122, h: 475 }, // verde
-  sofa: { x: 131, y: 169, w: 645, h: 306 }, // vermelho
-  table: { x: 793, y: 298, w: 182, h: 180 }, // azul
-  turntable: { x: 814, y: 266, w: 141, h: 28 }, // rosa
+const RECTS: Record<"aquario" | "sofa" | "tv", Rect> = {
+  aquario: { x: -55, y: -40, w: 250, h: 500, z: 1 },
+  sofa: { x: 111, y: 149, w: 685, h: 326, z: 2 },
+  tv: { x: 735, y: 178, w: 300, h: 300, z: 1 },
 };
 
 function pctX(v: number) {
@@ -38,7 +31,6 @@ export default function HomeScene() {
         flexDirection: "column",
         justifyContent: "flex-end",
 
-        // safe area do HUD (mantém como já tinhas)
         paddingTop: 110,
         paddingBottom: 96,
 
@@ -53,47 +45,44 @@ export default function HomeScene() {
           paddingBottom: 8,
         }}
       >
-        {/* FRAME:
-            - respeita largura E altura (resolve o teu “meio do resize” / IMG2)
-            - e ainda mantém margem lateral (não cola às bordas)
-        */}
         <div
           style={{
-            // ✅ largura limitada por:
-            // 1) um máximo “normal” (860px)
-            // 2) a viewport em largura (100vw - 48px)
-            // 3) a viewport em altura (vh * aspectRatio)
             width: `min(
               860px,
               calc(100vw - 48px),
               calc((100vh - 110px - 96px) * 0.55 * ${BASE_W} / ${BASE_H})
             )`,
 
-            // ✅ ESTES DOIS estavam no sítio errado (dentro do width)
-            // agora são propriedades reais do style:
             transform: "scale(0.9)",
             transformOrigin: "top center",
 
             aspectRatio: `${BASE_W} / ${BASE_H}`,
             position: "relative",
-
-            // (debug opcional)
-            // outline: "1px solid rgba(0,0,0,0.12)",
           }}
         >
-          {/* Lâmpada */}
+          {/* Aquário */}
           <div
-            data-obj="lamp"
+            data-obj="aquario"
             style={{
               position: "absolute",
-              left: pctX(RECTS.lamp.x),
-              top: pctY(RECTS.lamp.y),
-              width: pctX(RECTS.lamp.w),
-              height: pctY(RECTS.lamp.h),
-              background: "rgba(0, 255, 0, 0.25)",
-              borderRadius: 10,
+              left: pctX(RECTS.aquario.x),
+              top: pctY(RECTS.aquario.y),
+              width: pctX(RECTS.aquario.w),
+              height: pctY(RECTS.aquario.h),
+              zIndex: RECTS.aquario.z,
+              pointerEvents: "none",
             }}
-          />
+          >
+            <Image
+              src="/img/home/aquario.webp"
+              alt="Aquário"
+              fill
+              priority
+              sizes="(max-width: 900px) 70vw, 860px"
+              style={{ objectFit: "contain" }}
+              draggable={false}
+            />
+          </div>
 
           {/* Sofá */}
           <div
@@ -104,38 +93,44 @@ export default function HomeScene() {
               top: pctY(RECTS.sofa.y),
               width: pctX(RECTS.sofa.w),
               height: pctY(RECTS.sofa.h),
-              background: "rgba(255, 0, 0, 0.18)",
-              borderRadius: 12,
+              zIndex: RECTS.sofa.z,
+              pointerEvents: "none",
             }}
-          />
+          >
+            <Image
+              src="/img/home/sofa.webp"
+              alt="Sofá"
+              fill
+              priority
+              sizes="(max-width: 900px) 70vw, 860px"
+              style={{ objectFit: "contain" }}
+              draggable={false}
+            />
+          </div>
 
-          {/* Mesa */}
+          {/* TV */}
           <div
-            data-obj="table"
+            data-obj="tv"
             style={{
               position: "absolute",
-              left: pctX(RECTS.table.x),
-              top: pctY(RECTS.table.y),
-              width: pctX(RECTS.table.w),
-              height: pctY(RECTS.table.h),
-              background: "rgba(0, 0, 255, 0.18)",
-              borderRadius: 12,
+              left: pctX(RECTS.tv.x),
+              top: pctY(RECTS.tv.y),
+              width: pctX(RECTS.tv.w),
+              height: pctY(RECTS.tv.h),
+              zIndex: RECTS.tv.z,
+              pointerEvents: "none",
             }}
-          />
-
-          {/* Toca discos */}
-          <div
-            data-obj="turntable"
-            style={{
-              position: "absolute",
-              left: pctX(RECTS.turntable.x),
-              top: pctY(RECTS.turntable.y),
-              width: pctX(RECTS.turntable.w),
-              height: pctY(RECTS.turntable.h),
-              background: "rgba(255, 105, 180, 0.28)",
-              borderRadius: 10,
-            }}
-          />
+          >
+            <Image
+              src="/img/home/tv.webp"
+              alt="TV"
+              fill
+              priority
+              sizes="(max-width: 900px) 70vw, 860px"
+              style={{ objectFit: "contain" }}
+              draggable={false}
+            />
+          </div>
         </div>
       </div>
     </div>
